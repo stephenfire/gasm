@@ -110,3 +110,10 @@ func TestDecodeInt64(t *testing.T) {
 		assert.Equal(t, uint64(len(c.bytes)), num)
 	}
 }
+
+func TestDecodeDebug(t *testing.T) {
+	bs := []byte{0xf9, 0xff, 0xff, 0x7f}
+	actual, num, err := DecodeInt64(bytes.NewReader(bs))
+	require.NoError(t, err)
+	t.Logf("%x -> %d, num:%d", bs, actual, num)
+}

@@ -31,10 +31,13 @@ func Test_hostFunc(t *testing.T) {
 	vm, err := wasm.NewVM(mod, builder.Done())
 	require.NoError(t, err)
 
-	for _, exp := range []uint64{5, 10, 15} {
-		_, _, err = vm.ExecExportedFunction("call_host_func", exp)
+	exp := []uint64{5, 15, 30}
+	for i, c := range []uint64{5, 10, 15} {
+		t.Logf("i:%d exp:%d c:%d cnt:%d", i, exp[i], c, cnt)
+		_, _, err = vm.ExecExportedFunction("call_host_func", c)
+		t.Logf("err:%v exp:%d cnt:%d", err, exp[i], cnt)
 		require.NoError(t, err)
-		require.Equal(t, exp, cnt)
-		cnt = 0
+		require.Equal(t, exp[i], cnt)
+		// cnt = 0
 	}
 }
