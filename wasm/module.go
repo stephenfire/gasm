@@ -31,6 +31,8 @@ type (
 		SecCodes     []*CodeSegment
 		SecData      []*DataSegment
 
+		DataEndAt int
+
 		IndexSpace *ModuleIndexSpace
 	}
 
@@ -255,7 +257,7 @@ func (m *Module) buildMemoryIndexSpace() error {
 		// note: MVP restricts the size of memory index spaces to 1
 		if d.MemoryIndex >= uint32(len(m.IndexSpace.Memory)) {
 			return fmt.Errorf("index out of range of index space")
-		} else if d.MemoryIndex >= uint32(len(m.SecMemory)) {
+		} else if d.MemoryIndex >= uint32(len(m.SecMemory)) { // 超出MVP1.0的范围（多内存空间）
 			return fmt.Errorf("index out of range of memory section")
 		}
 
@@ -282,6 +284,9 @@ func (m *Module) buildMemoryIndexSpace() error {
 			m.IndexSpace.Memory[d.MemoryIndex] = next
 		} else {
 			copy(memory[offset:], d.Init)
+		}
+		if size > m.DataEndAt {
+			m.DataEndAt = size
 		}
 	}
 	return nil

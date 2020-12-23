@@ -38,7 +38,3 @@ func TestCallImports(t *testing.T) {
 	c := uint64(testsIntAdd(int64(a), int64(b))) + 10
 	require.Equal(t, c, rets[0])
 }
-
-func testsGuoStrslength(apointer, bpointer int32) int32 {
-
-}

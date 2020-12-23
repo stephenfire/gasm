@@ -3,21 +3,27 @@ package wasm
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
 
 	"github.com/mathetake/gasm/wasm/leb128"
+	"github.com/stephenfire/go-bfalloc"
 )
 
-const vmPageSize = 65536
+const (
+	vmPageSize    = 65536
+	FixedStackIdx = 16 * 1024
+)
 
 type (
 	VirtualMachine struct {
 		InnerModule   *Module
 		ActiveContext *NativeFunctionContext
 		Functions     []VirtualMachineFunction
-		Memory        []byte
-		Globals       []uint64
+		// Memory        []byte
+		Mem     *bfalloc.Memory
+		Globals []uint64
 
 		OperandStack *VirtualMachineOperandStack
 		// used to store runtime data per VirtualMachine
@@ -32,6 +38,46 @@ type (
 	}
 )
 
+func CreateMemory(module *Module) (*bfalloc.Memory, error) {
+	var heapBase, dataBase int
+	if heapBaseSec, ok := module.SecExports["__heap_base"]; ok {
+		if int(heapBaseSec.Desc.Index) >= len(module.SecGlobals) {
+			return nil, errors.New("invalid global index for __heap_base")
+		}
+		globalEntry := module.SecGlobals[int(heapBaseSec.Desc.Index)]
+		valTmp, err := module.executeConstExpression(globalEntry.Init)
+		if err != nil {
+			return nil, err
+		}
+		val, ok := valTmp.(int32)
+		if !ok {
+			return nil, errors.New("invalid global init expression")
+		}
+		dataBase = FixedStackIdx
+		heapBase = int(val)
+	} else {
+		// if !ok {
+		// 	return nil, errors.New("invalid memory no __heap_base")
+		// }
+		module.DataEndAt = heapBase
+	}
+	initMemSize := int(module.SecMemory[0].Min) * bfalloc.PageSize
+	maxMemSize := 0
+	if module.SecMemory[0].Max != nil {
+		maxMemSize = int(*module.SecMemory[0].Max) * bfalloc.PageSize
+	}
+	var initData []byte
+	if len(module.IndexSpace.Memory) > 0 && len(module.IndexSpace.Memory[0]) >= module.DataEndAt {
+		initData = module.IndexSpace.Memory[0][:module.DataEndAt]
+	}
+
+	memManager, err := bfalloc.NewMemory(dataBase, initData, initMemSize, maxMemSize)
+	if err != nil {
+		return nil, err
+	}
+	return memManager, nil
+}
+
 func NewVM(module *Module, externModules map[string]*Module) (*VirtualMachine, error) {
 	if err := module.buildIndexSpaces(externModules); err != nil {
 		return nil, fmt.Errorf("build index space: %w", err)
@@ -42,12 +88,18 @@ func NewVM(module *Module, externModules map[string]*Module) (*VirtualMachine, e
 		OperandStack: NewVirtualMachineOperandStack(),
 	}
 
-	// initialize vm memory
-	// note: MVP restricts vm to have a single memory space
-	vm.Memory = vm.InnerModule.IndexSpace.Memory[0]
-	if diff := uint64(vm.InnerModule.SecMemory[0].Min)*vmPageSize - uint64(len(vm.Memory)); diff > 0 {
-		vm.Memory = append(vm.Memory, make([]byte, diff)...)
+	vmem, err := CreateMemory(module)
+	if err != nil {
+		return nil, err
 	}
+	vm.Mem = vmem
+
+	// // initialize vm memory
+	// // note: MVP restricts vm to have a single memory space
+	// vm.Memory = vm.InnerModule.IndexSpace.Memory[0]
+	// if diff := uint64(vm.InnerModule.SecMemory[0].Min)*vmPageSize 	- uint64(len(vm.Memory)); diff > 0 {
+	// 	vm.Memory = append(vm.Memory, make([]byte, diff)...)
+	// }
 
 	// initialize functions
 	vm.Functions = make([]VirtualMachineFunction, len(vm.InnerModule.IndexSpace.Function))

@@ -29,15 +29,15 @@ func fd_write(vm *wasm.VirtualMachine) reflect.Value {
 		var nwritten uint32
 		for i := int32(0); i < iovsLen; i++ {
 			iovPtr := iovsPtr + i*8
-			offset := binary.LittleEndian.Uint32(vm.Memory[iovPtr:])
-			l := binary.LittleEndian.Uint32(vm.Memory[iovPtr+4:])
-			n, err := os.Stdout.Write(vm.Memory[offset : offset+l])
+			offset := binary.LittleEndian.Uint32(vm.Mem.Memory[iovPtr:])
+			l := binary.LittleEndian.Uint32(vm.Mem.Memory[iovPtr+4:])
+			n, err := os.Stdout.Write(vm.Mem.Memory[offset : offset+l])
 			if err != nil {
 				panic(err)
 			}
 			nwritten += uint32(n)
 		}
-		binary.LittleEndian.PutUint32(vm.Memory[nwrittenPtr:], nwritten)
+		binary.LittleEndian.PutUint32(vm.Mem.Memory[nwrittenPtr:], nwritten)
 		return 0
 	}
 	return reflect.ValueOf(body)
