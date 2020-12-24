@@ -56,10 +56,11 @@ func CreateMemory(module *Module) (*bfalloc.Memory, error) {
 		dataBase = FixedStackIdx
 		heapBase = int(val)
 	} else {
-		// if !ok {
-		// 	return nil, errors.New("invalid memory no __heap_base")
-		// }
-		module.DataEndAt = heapBase
+		// // if !ok {
+		// // 	return nil, errors.New("invalid memory no __heap_base")
+		// // }
+		// module.DataEndAt = heapBase
+		heapBase = module.DataEndAt
 	}
 	initMemSize := int(module.SecMemory[0].Min) * bfalloc.PageSize
 	maxMemSize := 0
@@ -67,8 +68,8 @@ func CreateMemory(module *Module) (*bfalloc.Memory, error) {
 		maxMemSize = int(*module.SecMemory[0].Max) * bfalloc.PageSize
 	}
 	var initData []byte
-	if len(module.IndexSpace.Memory) > 0 && len(module.IndexSpace.Memory[0]) >= module.DataEndAt {
-		initData = module.IndexSpace.Memory[0][:module.DataEndAt]
+	if len(module.IndexSpace.Memory) > 0 && len(module.IndexSpace.Memory[0]) >= heapBase {
+		initData = module.IndexSpace.Memory[0][:heapBase]
 	}
 
 	memManager, err := bfalloc.NewMemory(dataBase, initData, initMemSize, maxMemSize)

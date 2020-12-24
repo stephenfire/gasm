@@ -1,7 +1,6 @@
 package wasm
 
 import (
-	"fmt"
 	"math"
 	"reflect"
 )
@@ -57,29 +56,29 @@ func (h *HostFunction) Call(vm *VirtualMachine) {
 			val.SetUint(raw)
 		case reflect.Int32, reflect.Int64:
 			val.SetInt(int64(raw))
-		case reflect.String:
-			bs, err := vm.Mem.GetString(raw)
-			if err != nil {
-				panic(fmt.Sprintf("GetString(%d) error: %v", raw, err))
-			}
-			val.SetString(string(bs))
-			// ptr := int(raw)
-			// if ptr >= len(vm.Mem.Memory) {
-			// 	panic("memory out of bound")
-			// }
-			// strLen := 0
-			// p := ptr
-			// for ; p < len(vm.Mem.Memory) && vm.Mem.Memory[p] != 0x0; p++ {
-			// 	strLen++
-			// }
-			// if p == len(vm.Mem.Memory) {
-			// 	panic("invalid memory index")
-			// }
-			// bs := make([]byte, strLen)
-			// if strLen > 0 {
-			// 	copy(bs, vm.Mem.Memory[ptr:p])
-			// }
-			// val.SetString(string(bs))
+		// case reflect.String:
+		// 	bs, err := vm.Mem.GetString(raw)
+		// 	if err != nil {
+		// 		panic(fmt.Sprintf("GetString(%d) error: %v", raw, err))
+		// 	}
+		// 	val.SetString(string(bs))
+		// 	// ptr := int(raw)
+		// 	// if ptr >= len(vm.Mem.Memory) {
+		// 	// 	panic("memory out of bound")
+		// 	// }
+		// 	// strLen := 0
+		// 	// p := ptr
+		// 	// for ; p < len(vm.Mem.Memory) && vm.Mem.Memory[p] != 0x0; p++ {
+		// 	// 	strLen++
+		// 	// }
+		// 	// if p == len(vm.Mem.Memory) {
+		// 	// 	panic("invalid memory index")
+		// 	// }
+		// 	// bs := make([]byte, strLen)
+		// 	// if strLen > 0 {
+		// 	// 	copy(bs, vm.Mem.Memory[ptr:p])
+		// 	// }
+		// 	// val.SetString(string(bs))
 		default:
 			panic("invalid input type")
 		}
@@ -94,8 +93,13 @@ func (h *HostFunction) Call(vm *VirtualMachine) {
 			vm.OperandStack.Push(ret.Uint())
 		case reflect.Int32, reflect.Int64:
 			vm.OperandStack.Push(uint64(ret.Int()))
-		case reflect.String:
-
+		// case reflect.String:
+		// 	s := ret.String()
+		// 	ptr, err := vm.Mem.SetString(s)
+		// 	if err != nil {
+		// 		panic(fmt.Sprintf("Mem.SetString(len:%d) error: %v", len(s), err))
+		// 	}
+		// 	vm.OperandStack.Push(ptr)
 		default:
 			panic("invalid return type")
 		}
